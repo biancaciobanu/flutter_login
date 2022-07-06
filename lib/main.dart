@@ -76,12 +76,12 @@ class _LoginScreenState extends State<LoginScreen> {
             "CityGo Login",
             style: TextStyle(
               color: Colors.purple,
-              fontSize: 28.0,
+              fontSize: 24.0,
               fontWeight: FontWeight.bold,
             ),
           ),
           const SizedBox(
-            height: 44.0,
+            height: 40.0,
           ),
           TextField(
             controller: emailController,
@@ -91,7 +91,7 @@ class _LoginScreenState extends State<LoginScreen> {
             ),
           ),
           const SizedBox(
-            height: 26.0,
+            height: 22.0,
           ),
           TextField(
             controller: passwordController,
@@ -124,7 +124,7 @@ class _LoginScreenState extends State<LoginScreen> {
               child: const Text("Login",
                   style: TextStyle(
                     color: Colors.white,
-                    fontSize: 18.0,
+                    fontSize: 14.0,
                   )),
             ),
           ),
