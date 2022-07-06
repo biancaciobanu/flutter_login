@@ -1,13 +1,15 @@
-import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:login_flutter/display_screen.dart';
+import 'second_screen.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp();
-  runApp(const MyApp());
+  runApp(const MaterialApp(home: MyApp()));
 }
+
+final _auth = FirebaseAuth.instance;
 
 class MyApp extends StatelessWidget {
   const MyApp({Key? key}) : super(key: key);
@@ -28,26 +30,10 @@ class Home extends StatefulWidget {
 }
 
 class _HomeState extends State<Home> {
-  // Firebase init
-  Future<FirebaseApp> _initializeFirebase() async {
-    FirebaseApp firebaseApp = await Firebase.initializeApp();
-    return firebaseApp;
-  }
-
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: FutureBuilder(
-        future: _initializeFirebase(),
-        builder: (context, login) {
-          if (login.connectionState == ConnectionState.done) {
-            return const LoginScreen();
-          }
-          return const Center(
-            child: CircularProgressIndicator(),
-          );
-        },
-      ),
+    return const Scaffold(
+      body: LoginScreen(),
     );
   }
 }
@@ -60,18 +46,46 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen> {
+  final TextEditingController emailController = TextEditingController();
+  final TextEditingController passwordController = TextEditingController();
+  bool isEmpty = true;
+  bool viewPassword = true;
+  String passwordField = '';
+  String emailField = '';
+  bool showValidation = false;
+
+  @override
+  void initState() {
+    super.initState();
+    emailController.addListener(() {
+      checkEmpty();
+    });
+    passwordController.addListener(() {
+      checkEmpty();
+    });
+  }
+
+  void checkEmpty() {
+    if (emailController.text.isNotEmpty && passwordController.text.isNotEmpty) {
+      setState(() {
+        isEmpty = false;
+      });
+    } else {
+      setState(() {
+        isEmpty = true;
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    final TextEditingController emailController = TextEditingController();
-    final TextEditingController passwordController = TextEditingController();
-
     return Padding(
       padding: const EdgeInsets.all(16.0),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-         // const Image(image: AssetImage('assets/images/login_background.svg')),
+          // const Image(image: AssetImage('assets/images/login_background.svg')),
           const Text(
             "CityGo Login",
             style: TextStyle(
@@ -83,21 +97,46 @@ class _LoginScreenState extends State<LoginScreen> {
           const SizedBox(
             height: 40.0,
           ),
-          TextField(
-            controller: emailController,
-            keyboardType: TextInputType.emailAddress,
-            decoration: const InputDecoration(
-              hintText: "Email",
+          Form(
+            child: TextFormField(
+              controller: emailController,
+              onChanged: (value) {
+                emailField = value;
+              },
+              decoration: InputDecoration(
+                label: const Text('Email'),
+                labelStyle:
+                    TextStyle(color: showValidation ? Colors.red : Colors.grey),
+                border: const OutlineInputBorder(),
+              ),
             ),
           ),
           const SizedBox(
             height: 22.0,
           ),
-          TextField(
-            controller: passwordController,
-            obscureText: true,
-            decoration: const InputDecoration(
-              hintText: "Password",
+          Form(
+            child: TextFormField(
+              obscureText: viewPassword,
+              controller: passwordController,
+              onChanged: (value) {
+                passwordField = value;
+              },
+              decoration: InputDecoration(
+                label: const Text('Password'),
+                labelStyle:
+                    TextStyle(color: showValidation ? Colors.red : Colors.grey),
+                border: const OutlineInputBorder(),
+                suffixIcon: IconButton(
+                  icon: viewPassword
+                      ? const Icon(Icons.visibility_off)
+                      : const Icon(Icons.visibility),
+                  onPressed: () {
+                    setState(() {
+                      viewPassword = !viewPassword;
+                    });
+                  },
+                ),
+              ),
             ),
           ),
           const SizedBox(
@@ -111,16 +150,26 @@ class _LoginScreenState extends State<LoginScreen> {
               padding: const EdgeInsets.symmetric(vertical: 20.0),
               shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12.0)),
-              onPressed: () async {
-                User? user = await login(
-                    email: emailController.text,
-                    password: passwordController.text,
-                    context: context);
-                print(user);
-                if (user != null) {
-                  Navigator.of(context).pushReplacement(MaterialPageRoute(builder : (context) => const DisplayScreen()));
-                }
-              },
+              onPressed: (isEmpty
+                  ? null
+                  : () async {
+                      try {
+                        await _auth.signInWithEmailAndPassword(
+                            email: emailField, password: passwordField);
+                      } catch (e) {
+                        return setState(() {
+                          showValidation = true;
+                        });
+                      }
+
+                      if (mounted) {
+                        Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                                builder: (_) =>
+                                    SecondScreen(email: emailField)));
+                      }
+                    }),
               child: const Text("Login",
                   style: TextStyle(
                     color: Colors.white,
@@ -134,21 +183,5 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   // Implementation of the login function
-  static Future<User?> login(
-      {required String email,
-      required String password,
-      required BuildContext context}) async {
-    FirebaseAuth auth = FirebaseAuth.instance;
-    User? user;
-    try {
-      UserCredential userCredential = await auth.signInWithEmailAndPassword(
-          email: email, password: password);
-      user = userCredential.user;
-    } on FirebaseAuthException catch (e) {
-      if (e.code == "user-not-found") {
-        print("No user found for this email.");
-      }
-    }
-    return user;
-  }
+
 }
