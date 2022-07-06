@@ -9,7 +9,7 @@ Future<void> main() async {
   runApp(const MaterialApp(home: MyApp()));
 }
 
-final _auth = FirebaseAuth.instance;
+//final _auth = FirebaseAuth.instance;
 
 class MyApp extends StatelessWidget {
   const MyApp({Key? key}) : super(key: key);
@@ -30,10 +30,24 @@ class Home extends StatefulWidget {
 }
 
 class _HomeState extends State<Home> {
+  Future<FirebaseApp> _initializeFirebase() async {
+    FirebaseApp firebaseApp = await Firebase.initializeApp();
+    return firebaseApp;
+  }
+
   @override
   Widget build(BuildContext context) {
-    return const Scaffold(
-      body: LoginScreen(),
+    return Scaffold(
+      body: FutureBuilder(
+          future: _initializeFirebase(),
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.done) {
+              return const LoginScreen();
+            }
+            return const Center(
+              child: CircularProgressIndicator(),
+            );
+          }),
     );
   }
 }
@@ -48,34 +62,6 @@ class LoginScreen extends StatefulWidget {
 class _LoginScreenState extends State<LoginScreen> {
   final TextEditingController emailController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
-  bool isEmpty = true;
-  bool viewPassword = true;
-  bool showValidation = false;
-  String passwordField = '';
-  String emailField = '';
-
-  @override
-  void initState() {
-    super.initState();
-    emailController.addListener(() {
-      checkEmpty();
-    });
-    passwordController.addListener(() {
-      checkEmpty();
-    });
-  }
-
-  void checkEmpty() {
-    if (emailController.text.isNotEmpty && passwordController.text.isNotEmpty) {
-      setState(() {
-        isEmpty = false;
-      });
-    } else {
-      setState(() {
-        isEmpty = true;
-      });
-    }
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -99,44 +85,20 @@ class _LoginScreenState extends State<LoginScreen> {
           ),
           Form(
             child: TextFormField(
-              controller: emailController,
-              onChanged: (value) {
-                emailField = value;
-              },
-              decoration: InputDecoration(
-                label: const Text('Email'),
-                labelStyle:
-                    TextStyle(color: showValidation ? Colors.red : Colors.grey),
-                border: const OutlineInputBorder(),
-              ),
-            ),
+                controller: emailController,
+                keyboardType: TextInputType.emailAddress,
+                decoration: const InputDecoration(
+                  hintText: "Username",
+                )),
           ),
           const SizedBox(
             height: 22.0,
           ),
           Form(
             child: TextFormField(
-              obscureText: viewPassword,
+              obscureText: true,
               controller: passwordController,
-              onChanged: (value) {
-                passwordField = value;
-              },
-              decoration: InputDecoration(
-                label: const Text('Password'),
-                labelStyle:
-                    TextStyle(color: showValidation ? Colors.red : Colors.green),
-                border: const OutlineInputBorder(),
-                suffixIcon: IconButton(
-                  icon: viewPassword
-                      ? const Icon(Icons.visibility_off)
-                      : const Icon(Icons.visibility),
-                  onPressed: () {
-                    setState(() {
-                      viewPassword = !viewPassword;
-                    });
-                  },
-                ),
-              ),
+              decoration: const InputDecoration(hintText: "Password"),
             ),
           ),
           const SizedBox(
@@ -150,26 +112,17 @@ class _LoginScreenState extends State<LoginScreen> {
               padding: const EdgeInsets.symmetric(vertical: 20.0),
               shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12.0)),
-              onPressed: (isEmpty
-                  ? null
-                  : () async {
-                      try {
-                        await _auth.signInWithEmailAndPassword(
-                            email: emailField, password: passwordField);
-                      } catch (e) {
-                        return setState(() {
-                          showValidation = true;
-                        });
-                      }
-
-                      if (mounted) {
-                        Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                                builder: (_) =>
-                                    SecondScreen(email: emailField)));
-                      }
-                    }),
+              onPressed: () async {
+                User? user = await login(
+                    email: emailController.text,
+                    password: passwordController.text,
+                    context: context);
+                print(user);
+                if (user != null) {
+                  Navigator.of(context).pushReplacement(MaterialPageRoute(
+                      builder: (context) => const SecondScreen()));
+                }
+              },
               child: const Text("Login",
                   style: TextStyle(
                     color: Colors.white,
@@ -183,5 +136,21 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   // Implementation of the login function
-
+  static Future<User?> login(
+      {required String email,
+      required String password,
+      required BuildContext context}) async {
+    FirebaseAuth auth = FirebaseAuth.instance;
+    User? user;
+    try {
+      UserCredential userCredential = await auth.signInWithEmailAndPassword(
+          email: email, password: password);
+      user = userCredential.user;
+    } on FirebaseAuthException catch (e) {
+      if (e.code == "user-not-found") {
+        print("Email not found");
+      }
+    }
+    return user;
+  }
 }
