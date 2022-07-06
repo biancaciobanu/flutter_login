@@ -50,9 +50,9 @@ class _LoginScreenState extends State<LoginScreen> {
   final TextEditingController passwordController = TextEditingController();
   bool isEmpty = true;
   bool viewPassword = true;
+  bool showValidation = false;
   String passwordField = '';
   String emailField = '';
-  bool showValidation = false;
 
   @override
   void initState() {
@@ -124,7 +124,7 @@ class _LoginScreenState extends State<LoginScreen> {
               decoration: InputDecoration(
                 label: const Text('Password'),
                 labelStyle:
-                    TextStyle(color: showValidation ? Colors.red : Colors.grey),
+                    TextStyle(color: showValidation ? Colors.red : Colors.green),
                 border: const OutlineInputBorder(),
                 suffixIcon: IconButton(
                   icon: viewPassword
