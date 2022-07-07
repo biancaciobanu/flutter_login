@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 class SecondScreen extends StatelessWidget {
+  // ignore: prefer_typing_uninitialized_variables
   final email;
   const SecondScreen({Key? key, this.email}) : super(key: key);
 

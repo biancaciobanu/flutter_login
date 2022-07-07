@@ -9,8 +9,6 @@ Future<void> main() async {
   runApp(const MaterialApp(home: MyApp()));
 }
 
-//final _auth = FirebaseAuth.instance;
-
 class MyApp extends StatelessWidget {
   const MyApp({Key? key}) : super(key: key);
 
@@ -113,15 +111,15 @@ class _LoginScreenState extends State<LoginScreen> {
               shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12.0)),
               onPressed: () async {
-                User? user = await login(
+                login(
                     email: emailController.text,
                     password: passwordController.text,
                     context: context);
-                print(user);
-                if (user != null) {
-                  Navigator.of(context).pushReplacement(MaterialPageRoute(
-                      builder: (context) => const SecondScreen()));
-                }
+
+                //if (user != null) {
+                //Navigator.of(context).pushReplacement(MaterialPageRoute(
+                //builder: (context) => const SecondScreen()));
+                // }
               },
               child: const Text("Login",
                   style: TextStyle(
@@ -136,21 +134,21 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   // Implementation of the login function
-  static Future<User?> login(
+  void login(
       {required String email,
       required String password,
       required BuildContext context}) async {
     FirebaseAuth auth = FirebaseAuth.instance;
-    User? user;
+    // User? user;
     try {
-      UserCredential userCredential = await auth.signInWithEmailAndPassword(
-          email: email, password: password);
-      user = userCredential.user;
+      await auth.signInWithEmailAndPassword(email: email, password: password);
+      Navigator.of(context).pushReplacement(
+          MaterialPageRoute(builder: (context) => const SecondScreen()));
     } on FirebaseAuthException catch (e) {
       if (e.code == "user-not-found") {
         print("Email not found");
       }
     }
-    return user;
+    
   }
 }
